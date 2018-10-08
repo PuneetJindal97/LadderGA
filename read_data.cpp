@@ -36,11 +36,11 @@ class gene{
 int main() {
 	// your code goes here
 	ifstream file1;
-	file1.open("chromosome2.txt");
+	file1.open("chromosome3.txt");
 	
 	string s1="";
-	vector<gene> ladder;
-	vector<vector<gene> > solutions; 
+	vector<gene> quesBank;
+	
 	int cnt=0;
 	while(!file1.eof())
 	{
@@ -71,24 +71,30 @@ int main() {
 		file1>>s1;
 		g1.userRating = stod(s1);
 		
-		ladder.push_back(g1);
-		cnt++;
-		if(cnt==20)
-		{
-			solutions.push_back(ladder);
-			ladder.clear();
-			cnt=0;
-		}
+		quesBank.push_back(g1);
+//		cnt++;
+//		if(cnt==20)
+//		{
+//			solutions.push_back(ladder);
+//			ladder.clear();
+//			cnt=0;
+//		}
 	}
 	
-	for(int i=0;i<solutions.size();i++)
+	//cout<<quesBank.size()<<" ";
+	for(int i=0;i<quesBank.size()-1;i++)
 	{
-		for(int j=0;j<solutions[i].size();j++)
-		{
-			gene g2 = solutions[i][j];
-			g2.print();
-		}
+		quesBank[i].print();
 	}
-]
+//	for(int i=0;i<solutions.size();i++)
+//	{
+//		for(int j=0;j<solutions[i].size();j++)
+//		{
+//			gene g2 = solutions[i][j];
+//			g2.print();
+//		}
+//	}
+
+
 	return 0;
 }
