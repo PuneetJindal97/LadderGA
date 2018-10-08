@@ -12,18 +12,19 @@ const double USERRATING_WT = 1;
 const double AVGTIME_WT = 1;
 const double CD_WT = 0.6;
 const double AD_WT = 0.4;
+double DD;
 
 class gene{
     public:
-        int level;
-        int accuracy;
-        int wasteful;
-        int useful;
-        int overTime;
-        int skipRate;
-        int avgScore;
-        int userRating;
-        int avgTime;
+        double level;
+        double accuracy;
+        double wasteful;
+        double useful;
+        double overTime;
+        double skipRate;
+        double avgScore;
+        double userRating;
+        double avgTime;
         vector< string > conceptList;
 };
 
@@ -45,7 +46,6 @@ class Encoding{
             conceptCount += quesBank[this->code[i]].conceptList.size();
         }
         ans = ans/conceptCount;
-        ans = ans * 10;
         return ans;
 
     }
@@ -57,7 +57,7 @@ class Encoding{
             ans += quesBank[this->code[i]].accuracy;
         }
         ans /= 20;
-        ans = 100 - ans;
+        ans = 100.0 - ans;
         ans = ACCURACY_WT * ans;
         return ans;
     }
@@ -80,7 +80,7 @@ class Encoding{
             ans += quesBank[this->code[i]].useful;
         }
         ans /= 20;
-        ans = 100 - ans;
+        ans = 100.0 - ans;
         ans = USEFUL_WT * ans;
         return ans;
     }
@@ -152,7 +152,10 @@ class Encoding{
         return ans;
     }
     void calculateFitness(){
-        this->fitness = CD_WT * getConceptDifficulty() + AD_WT * getAttemptDifficulty();
+        double fa = CD_WT * getConceptDifficulty() + AD_WT * getAttemptDifficulty();
+        double fb = DD;
+        double F = abs(fa - fb);
+        this->fitness = ((double)1)/F;
     }
 
 };
@@ -160,6 +163,18 @@ class Encoding{
 
 vector< Encoding > chromosome(POPULATION_SIZE);
 
+// POPULATION INITIALIZATION
+
+void init(double d){
+    srand(time(NULL));
+    DD = d;
+    for(int i=0;i<POPULATION_SIZE;i++){
+        for(int j=0;j<20;j++){
+            chromosome[i].code[j] = rand() % 1000;
+        }
+        chromosome[i].calculateFitness();
+    }
+}
 // SELECTION
 
 int selection(){
@@ -216,6 +231,7 @@ void crossover(double PC){
 // MUTATION
 void getMutation(int a,int x){
     chromosome[a].code[x] = rand() % 1000;
+    chromosome[a].calculateFitness();
 }
 
 void mutation(double PM){
@@ -230,5 +246,25 @@ void mutation(double PM){
 
 
 int main(){
+    init(60.00);
+    // NXG is the no of generations.
+    // We try for different values of NXG till inflection is reached.
+    // That NXG will be reached when the average fitness of the population becomes more or less constant.
+    // Initially we take NXG as 1000.
+    int NXG = 1000;
 
+    for(int i=0;i<NXG;i++){
+        //Crossover with probability 0.5
+        crossover(0.5);
+        //Mutation with probability 0.05
+        mutation(0.05);
+    }
+    //Final solution has highest fitness.
+    double SOL_FIT = 0;
+    Encoding solution;
+    for(int i=0;i<POPULATION_SIZE;i++){
+        if(chromosome[i].fitness > SOL_FIT){
+            solution = chromosome[i];
+        }
+    }
 }
