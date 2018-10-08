@@ -27,10 +27,12 @@ class gene{
         vector< string > conceptList;
 };
 
+vector< gene > quesBank(1000);
+
 class Encoding{
     public:
     double fitness;
-    vector<gene> code;
+    vector< int > code;
     double probability;
     Encoding() : code(20), fitness(0), probability(0) {}
 
@@ -39,8 +41,8 @@ class Encoding{
         double ans = 0;
         double conceptCount = 0;
         for(int i=0;i<20;i++){
-            ans += this->code[i].level * this->code[i].conceptList.size();
-            conceptCount += this->code[i].conceptList.size();
+            ans += quesBank[this->code[i]].level * quesBank[this->code[i]].conceptList.size();
+            conceptCount += quesBank[this->code[i]].conceptList.size();
         }
         ans = ans/conceptCount;
         ans = ans * 10;
@@ -52,7 +54,7 @@ class Encoding{
 
         double ans = 0;
         for(int i=0;i<20;i++){
-            ans += this->code[i].accuracy;
+            ans += quesBank[this->code[i]].accuracy;
         }
         ans /= 20;
         ans = 100 - ans;
@@ -64,7 +66,7 @@ class Encoding{
 
         double ans = 0;
         for(int i=0;i<20;i++){
-            ans += this->code[i].wasteful;
+            ans += quesBank[this->code[i]].wasteful;
         }
         ans /= 20;
         ans = WASTEFUL_WT * ans;
@@ -75,7 +77,7 @@ class Encoding{
 
         double ans = 0;
         for(int i=0;i<20;i++){
-            ans += this->code[i].useful;
+            ans += quesBank[this->code[i]].useful;
         }
         ans /= 20;
         ans = 100 - ans;
@@ -87,7 +89,7 @@ class Encoding{
 
         double ans = 0;
         for(int i=0;i<20;i++){
-            ans += this->code[i].overTime;
+            ans += quesBank[this->code[i]].overTime;
         }
         ans /= 20;
         ans = OVERTIME_WT * ans;
@@ -98,7 +100,7 @@ class Encoding{
 
         double ans = 0;
         for(int i=0;i<20;i++){
-            ans += this->code[i].skipRate;
+            ans += quesBank[this->code[i]].skipRate;
         }
         ans /= 20;
         ans = SKIPRATE_WT * ans;
@@ -108,7 +110,7 @@ class Encoding{
     double getUserRating(){
         double ans = 0;
         for(int i=0;i<20;i++){
-            ans += this->code[i].userRating;
+            ans += quesBank[this->code[i]].userRating;
         }
         ans /= 20;
         ans = USERRATING_WT * ans;
@@ -119,7 +121,7 @@ class Encoding{
 
         double ans = 0;
         for(int i=0;i<20;i++){
-            ans += this->code[i].avgScore;
+            ans += quesBank[this->code[i]].avgScore;
         }
         ans /= 20;
         ans = AVGSCORE_WT * ans;
@@ -130,7 +132,7 @@ class Encoding{
 
         double ans = 0;
         for(int i=0;i<20;i++){
-            ans += this->code[i].avgTime;
+            ans += quesBank[this->code[i]].avgTime;
         }
         ans /= 20;
         ans = AVGTIME_WT * ans;
@@ -158,6 +160,8 @@ class Encoding{
 
 vector< Encoding > chromosome(POPULATION_SIZE);
 
+// SELECTION
+
 int selection(){
     double totalFitness=0;
     double totalProbability=0;
@@ -184,6 +188,46 @@ int selection(){
 }
     return pick;
 }
+// CROSSOVER
+void getCrossover(int a,int b){
+    for(int i=0;i<20;i++){
+        if(i & 1){
+            chromosome[a].code[i] = chromosome[b].code[i];
+        }
+        else
+        {
+            chromosome[b].code[i] = chromosome[a].code[i];
+        }
+    }
+    chromosome[a].calculateFitness();
+    chromosome[b].calculateFitness();
+}
+
+void crossover(double PC){
+    double CROSSOVER_SIZE = 0;
+    while(CROSSOVER_SIZE <= PC*POPULATION_SIZE){
+        int a = selection();
+        int b = selection();
+        getCrossover(a,b);
+        CROSSOVER_SIZE ++;
+    }
+}
+
+// MUTATION
+void getMutation(int a,int x){
+    chromosome[a].code[x] = rand() % 1000;
+}
+
+void mutation(double PM){
+    srand((unsigned)time(NULL));
+    double MUTATION_SIZE = 0;
+    while(MUTATION_SIZE <= PM*POPULATION_SIZE){
+        int a = selection();
+        getMutation(a,rand()%20);
+        MUTATION_SIZE++;
+    }
+}
+
 
 int main(){
 
