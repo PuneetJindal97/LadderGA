@@ -1,4 +1,5 @@
 #include <bits/stdc++.h>
+#include <fstream>
 
 using namespace std;
 const int POPULATION_SIZE = 5000;
@@ -26,10 +27,10 @@ class gene{
         double skipRate;
         double avgScore;
         double userRating;
-        
+
 };
 
-vector< gene > quesBank;
+vector< gene > quesBank(1000);
 
 class Encoding{
     public:
@@ -168,49 +169,47 @@ vector< Encoding > chromosome(POPULATION_SIZE);
 
 void init(double d){
     srand(time(NULL));
-    
-    ifstream file1;
-	file1.open("chromosome3.txt");
-	
-	string s1="";
-	
-	while(!file1.eof())
-	{
-		gene g1;
-		file1>>s1;
-		g1.level = stod(s1);
-		file1>>s1;
-		g1.accuracy = stod(s1);
-		file1>>s1;
-		int g = stoi(s1);
-		for(int k=0;k<g;k++)
-		{
-			file1>>s1;
-			g1.conceptList.push_back(s1);
-		}
-		file1>>s1;
-		g1.wasteful = stod(s1);
-		file1>>s1;
-		g1.useful = stod(s1);
-		file1>>s1;
-		g1.overTime = stod(s1);
-		file1>>s1;
-		g1.avgTime = stod(s1);
-		file1>>s1;
-		g1.skipRate = stod(s1);
-		file1>>s1;
-		g1.avgScore = stod(s1);
-		file1>>s1;
-		g1.userRating = stod(s1);
-		
-		quesBank.push_back(g1); 
-	}
-    quesBank.pop_back();
-    
+    freopen("Input.txt", "r", stdin);
+    int conceptNumber;
+    for(int i=0;i<1000;i++){
+        cin >> quesBank[i].level;
+        cin >> quesBank[i].accuracy;
+        cin >> conceptNumber;
+        for(int j=0;j<conceptNumber;j++){
+            string sin;
+            cin >> sin;
+            quesBank[i].conceptList.push_back(sin);
+        }
+        cin >> quesBank[i].wasteful;
+        cin >> quesBank[i].useful;
+        cin >> quesBank[i].overTime;
+        cin >> quesBank[i].avgTime;
+        cin >> quesBank[i].skipRate;
+        cin >> quesBank[i].avgScore;
+        cin >> quesBank[i].userRating;
+    }
+
+    /*for(int i=0;i<5;i++){
+        cout << quesBank[i].level;
+        cout << quesBank[i].accuracy;
+        for(auto s : quesBank[i].conceptList){
+            cout << s << " ";
+        }
+        cout << quesBank[i].wasteful;
+        cout << quesBank[i].useful;
+        cout << quesBank[i].overTime;
+        cout << quesBank[i].avgTime;
+        cout << quesBank[i].skipRate;
+        cout << quesBank[i].avgScore;
+        cout << quesBank[i].userRating;
+        cout << "\n";
+    }*/
+
     DD = d;
     for(int i=0;i<POPULATION_SIZE;i++){
         for(int j=0;j<20;j++){
             chromosome[i].code[j] = rand() % 1000;
+
         }
         chromosome[i].calculateFitness();
     }
@@ -307,4 +306,5 @@ int main(){
             solution = chromosome[i];
         }
     }
+    cout << solution.fitness;
 }
