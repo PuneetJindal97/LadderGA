@@ -1,5 +1,4 @@
 #include <bits/stdc++.h>
-#include <fstream>
 
 using namespace std;
 const int POPULATION_SIZE = 5000;
@@ -239,19 +238,17 @@ int selection(){
             pick = i;
             break;
         }
-}
+    }
     return pick;
 }
 // CROSSOVER
 void getCrossover(int a,int b){
+    srand((unsigned)time(NULL));
     for(int i=0;i<20;i++){
-        if(i & 1){
-            chromosome[a].code[i] = chromosome[b].code[i];
-        }
-        else
-        {
-            chromosome[b].code[i] = chromosome[a].code[i];
-        }
+        double rndNumber = rand() / (double) RAND_MAX;
+    if(rndNumber <= 0.5){
+            swap(chromosome[a].code[i],chromosome[b].code[i]);
+    }
     }
     chromosome[a].calculateFitness();
     chromosome[b].calculateFitness();
