@@ -114,6 +114,7 @@ class Encoding{
             ans += quesBank[this->code[i]].userRating;
         }
         ans /= 20;
+        ans = 100.0 - ans;
         ans = USERRATING_WT * ans;
         return ans;
     }
@@ -125,6 +126,7 @@ class Encoding{
             ans += quesBank[this->code[i]].avgScore;
         }
         ans /= 20;
+        ans  = 100.0 - ans;
         ans = AVGSCORE_WT * ans;
         return ans;
     }
