@@ -1,7 +1,7 @@
 #include <bits/stdc++.h>
 
 using namespace std;
-const int POPULATION_SIZE = 50;
+const int POPULATION_SIZE = 500;
 const double ACCURACY_WT = 1;
 const double WASTEFUL_WT = 1;
 const double USEFUL_WT = 1;
@@ -205,21 +205,10 @@ void init(double d){
 }
 // SELECTION
 
-int selection(){
-    double totalFitness=0;
-    double totalProbability=0;
-    double probability=0;
+int getSelection(){
     double rndNumber = rand() / (double) RAND_MAX;
     double offset = 0.0;
     int pick = 0;
-
-    for(int i=0;i<POPULATION_SIZE;i++){
-        totalFitness += chromosome[i].fitness;
-    }
-
-    for(int i=0;i<POPULATION_SIZE;i++){
-        chromosome[i].probability = chromosome[i].fitness/totalFitness;
-    }
 
     for (int i = 0; i < POPULATION_SIZE; i++) {
         offset += chromosome[i].probability;
@@ -230,41 +219,62 @@ int selection(){
     }
     return pick;
 }
+
+void selection(){
+    double totalFitness=0;
+    double totalProbability=0;
+    double probability=0;
+    for(int i=0;i<POPULATION_SIZE;i++){
+        totalFitness += chromosome[i].fitness;
+    }
+
+    for(int i=0;i<POPULATION_SIZE;i++){
+        chromosome[i].probability = chromosome[i].fitness/totalFitness;
+    }
+    vector< Encoding > tocopy(POPULATION_SIZE);
+    for(int i = 0;i < POPULATION_SIZE;i++){
+        int pick = getSelection();
+        tocopy[i] = chromosome[pick];
+    }
+     for(int i = 0;i < POPULATION_SIZE;i++){
+        chromosome[i] = tocopy[i];
+    }
+}
 // CROSSOVER
 void getCrossover(int a,int b){
-    for(int i=0;i<20;i++){
-        double rndNumber = rand() / (double) RAND_MAX;
-    if(rndNumber <= 0.5){
-            swap(chromosome[a].code[i],chromosome[b].code[i]);
-    }
+    int pt = rand() % 20;
+    for(int i=0;i<pt;i++){
+        swap(chromosome[a].code[i],chromosome[b].code[i]);
     }
     chromosome[a].calculateFitness();
     chromosome[b].calculateFitness();
 }
 
 void crossover(double PC){
-    double CROSSOVER_SIZE = 0;
-    while(CROSSOVER_SIZE < PC*POPULATION_SIZE){
-        int a = selection();
-        int b = selection();
-        getCrossover(a,b);
-        CROSSOVER_SIZE += 2;
+    for(int i = 0;i < POPULATION_SIZE;i += 2){
+        double rndNumber = rand() / (double) RAND_MAX;
+        if(rndNumber <= PC){
+            getCrossover(i,i+1);
+        }
     }
 }
 
 // MUTATION
-void getMutation(int a,int x){
-    chromosome[a].code[x] = rand() % 1000;
+void getMutation(int a,double PM){
+    for(int i=0;i<20;i++){
+        double rndNumber = rand() / (double) RAND_MAX;
+        if(rndNumber <= PM){
+            chromosome[a].code[i] = rand() % 1000;
+        }
+    }
     chromosome[a].calculateFitness();
 }
 
 void mutation(double PM){
-    double MUTATION_SIZE = 0;
-    while(MUTATION_SIZE < PM*POPULATION_SIZE){
-        int a = selection();
-        getMutation(a,rand()%20);
-        MUTATION_SIZE++;
+    for(int i = 0;i < POPULATION_SIZE;i ++){
+        getMutation(i,PM);
     }
+
 }
 
 
@@ -276,7 +286,7 @@ int main(){
     // We try for different values of NXG till inflection is reached.
     // That NXG will be reached when the average fitness of the population becomes more or less constant.
     // Initially we take NXG as 1000.
-    Encoding ans,pbest;
+    Encoding pbest;
     int best,worst;
     MAX_FITNESS = 0;
     MIN_FITNESS = (double)(INT_MAX);
@@ -294,17 +304,20 @@ int main(){
 
     pbest = chromosome[best];
 
-    cout << "INITIAL" << " \t " << pbest.fitness << "\n";
+    cout << "INITIAL" << " \t " << pbest.fitness << " \n ";
 
     for(int i=0;i<NXG;i++){
+        //Selection of mating pool
+        selection();
         //Crossover with probability 0.5
         crossover(0.5);
         //Mutation with probability 0.05
-        mutation(0.05);
+        mutation(0.1);
 
         MAX_FITNESS = 0;
         MIN_FITNESS = (double)(INT_MAX);
-
+        double ans = 0;
+        double sum = 0;
         for(int j=0;j<POPULATION_SIZE;j++){
 
             if(chromosome[j].fitness > MAX_FITNESS){
@@ -315,14 +328,17 @@ int main(){
                 worst = j;
                 MIN_FITNESS = chromosome[j].fitness;
             }
+            sum += chromosome[j].fitness;
         }
-        if(pbest.fitness > chromosome[best].fitness){
+        ans = sum/POPULATION_SIZE;
+        //if(pbest.fitness > chromosome[best].fitness){
             chromosome[worst] = pbest;
-        }
-        else{
-            pbest = chromosome[best];
-        }
+        //}
+        //else{
+            if(pbest.fitness < chromosome[best].fitness)
+                pbest = chromosome[best];
+        //}
 
-        cout << i + 1 << " \t " << pbest.fitness << " \n ";
+        cout << i + 1 << " \t " << ans << " \n ";
     }
 }
