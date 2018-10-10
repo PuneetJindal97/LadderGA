@@ -1,7 +1,7 @@
 #include <bits/stdc++.h>
 
 using namespace std;
-const int POPULATION_SIZE = 5000;
+const int POPULATION_SIZE = 50;
 const double ACCURACY_WT = 1;
 const double WASTEFUL_WT = 1;
 const double USEFUL_WT = 1;
@@ -13,6 +13,8 @@ const double AVGTIME_WT = 1;
 const double CD_WT = 0.6;
 const double AD_WT = 0.4;
 double DD;
+double MAX_FITNESS;
+double MIN_FITNESS;
 
 class gene{
     public:
@@ -34,9 +36,12 @@ vector< gene > quesBank(1000);
 class Encoding{
     public:
     double fitness;
+    double fb;
+    double fa;
+    double F;
     vector< int > code;
     double probability;
-    Encoding() : code(20), fitness(0), probability(0) {}
+    Encoding() : code(20), fitness(0), fa(0), fb(0), F(0), probability(0) {}
 
     double getConceptDifficulty(){
 
@@ -155,12 +160,11 @@ class Encoding{
         return ans;
     }
     void calculateFitness(){
-        double fa = CD_WT * getConceptDifficulty() + AD_WT * getAttemptDifficulty();
-        double fb = DD;
-        double F = abs(fa - fb);
-        this->fitness = ((double)1)/F;
+        fa = CD_WT * getConceptDifficulty() + AD_WT * getAttemptDifficulty();
+        fb = DD;
+        F = abs(fa - fb);
+        fitness = ((double)1)/F;
     }
-
 };
 
 
@@ -190,22 +194,6 @@ void init(double d){
         cin >> quesBank[i].userRating;
     }
 
-    /*for(int i=0;i<5;i++){
-        cout << quesBank[i].level;
-        cout << quesBank[i].accuracy;
-        for(auto s : quesBank[i].conceptList){
-            cout << s << " ";
-        }
-        cout << quesBank[i].wasteful;
-        cout << quesBank[i].useful;
-        cout << quesBank[i].overTime;
-        cout << quesBank[i].avgTime;
-        cout << quesBank[i].skipRate;
-        cout << quesBank[i].avgScore;
-        cout << quesBank[i].userRating;
-        cout << "\n";
-    }*/
-
     DD = d;
     for(int i=0;i<POPULATION_SIZE;i++){
         for(int j=0;j<20;j++){
@@ -221,7 +209,6 @@ int selection(){
     double totalFitness=0;
     double totalProbability=0;
     double probability=0;
-    srand((unsigned)time(NULL));
     double rndNumber = rand() / (double) RAND_MAX;
     double offset = 0.0;
     int pick = 0;
@@ -245,7 +232,6 @@ int selection(){
 }
 // CROSSOVER
 void getCrossover(int a,int b){
-    srand((unsigned)time(NULL));
     for(int i=0;i<20;i++){
         double rndNumber = rand() / (double) RAND_MAX;
     if(rndNumber <= 0.5){
@@ -258,11 +244,11 @@ void getCrossover(int a,int b){
 
 void crossover(double PC){
     double CROSSOVER_SIZE = 0;
-    while(CROSSOVER_SIZE <= PC*POPULATION_SIZE){
+    while(CROSSOVER_SIZE < PC*POPULATION_SIZE){
         int a = selection();
         int b = selection();
         getCrossover(a,b);
-        CROSSOVER_SIZE ++;
+        CROSSOVER_SIZE += 2;
     }
 }
 
@@ -273,9 +259,8 @@ void getMutation(int a,int x){
 }
 
 void mutation(double PM){
-    srand((unsigned)time(NULL));
     double MUTATION_SIZE = 0;
-    while(MUTATION_SIZE <= PM*POPULATION_SIZE){
+    while(MUTATION_SIZE < PM*POPULATION_SIZE){
         int a = selection();
         getMutation(a,rand()%20);
         MUTATION_SIZE++;
@@ -284,26 +269,60 @@ void mutation(double PM){
 
 
 int main(){
+    int NXG;
+    cin >> NXG;
     init(60.00);
     // NXG is the no of generations.
     // We try for different values of NXG till inflection is reached.
     // That NXG will be reached when the average fitness of the population becomes more or less constant.
     // Initially we take NXG as 1000.
-    int NXG = 1000;
+    Encoding ans,pbest;
+    int best,worst;
+    MAX_FITNESS = 0;
+    MIN_FITNESS = (double)(INT_MAX);
+
+    for(int j=0;j<POPULATION_SIZE;j++){
+            if(chromosome[j].fitness > MAX_FITNESS){
+                 best = j;
+                 MAX_FITNESS = chromosome[j].fitness;
+            }
+            if(chromosome[j].fitness < MIN_FITNESS){
+                worst = j;
+                MIN_FITNESS = chromosome[j].fitness;
+            }
+        }
+
+    pbest = chromosome[best];
+
+    cout << "INITIAL" << " \t " << pbest.fitness << "\n";
 
     for(int i=0;i<NXG;i++){
         //Crossover with probability 0.5
         crossover(0.5);
         //Mutation with probability 0.05
         mutation(0.05);
-    }
-    //Final solution has highest fitness.
-    double SOL_FIT = 0;
-    Encoding solution;
-    for(int i=0;i<POPULATION_SIZE;i++){
-        if(chromosome[i].fitness > SOL_FIT){
-            solution = chromosome[i];
+
+        MAX_FITNESS = 0;
+        MIN_FITNESS = (double)(INT_MAX);
+
+        for(int j=0;j<POPULATION_SIZE;j++){
+
+            if(chromosome[j].fitness > MAX_FITNESS){
+                best  = j;
+                MAX_FITNESS = chromosome[j].fitness;
+            }
+            if(chromosome[j].fitness < MIN_FITNESS){
+                worst = j;
+                MIN_FITNESS = chromosome[j].fitness;
+            }
         }
+        if(pbest.fitness > chromosome[best].fitness){
+            chromosome[worst] = pbest;
+        }
+        else{
+            pbest = chromosome[best];
+        }
+
+        cout << i + 1 << " \t " << pbest.fitness << " \n ";
     }
-    cout << solution.fitness;
 }
