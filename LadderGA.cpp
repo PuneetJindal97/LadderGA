@@ -173,6 +173,7 @@ vector< Encoding > chromosome(POPULATION_SIZE);
 // POPULATION INITIALIZATION
 
 void init(double d){
+    //srand(time(NULL));
     srand(time(NULL));
     freopen("Input.txt", "r", stdin);
     int conceptNumber;
@@ -278,67 +279,125 @@ void mutation(double PM){
 }
 
 
+class CSVWriter{
+	string fileName;
+	string delimiter;
+	int linesCnt;
+
+	public :
+	CSVWriter(string filename,string delim=",") : fileName(filename), delimiter(delim), linesCnt(0) {}
+
+	template<typename T>
+	void addDataInRow(T first,T last);
+};
+
+template<typename T>
+void CSVWriter::addDataInRow(T first,T last){
+	fstream file;
+	file.open(fileName,ios::out | (linesCnt ? ios::app : ios::trunc));
+
+	for(;first!=last;)
+	{
+		file << *first;
+		if(++first!=last)
+		{
+			file << delimiter;
+		}
+		file << "\n";
+	}
+	//file << "\n";
+	linesCnt++;
+	file.close();
+}
+
+
+
+
+
+
+
+
+
 int main(){
     int NXG;
     cin >> NXG;
-    init(60.00);
-    // NXG is the no of generations.
-    // We try for different values of NXG till inflection is reached.
-    // That NXG will be reached when the average fitness of the population becomes more or less constant.
-    // Initially we take NXG as 1000.
-    Encoding pbest;
-    int best,worst;
-    MAX_FITNESS = 0;
-    MIN_FITNESS = (double)(INT_MAX);
+    CSVWriter writer("Gen_avg_data.csv");
+	CSVWriter writer2("Gen_max_data.csv");
 
-    for(int j=0;j<POPULATION_SIZE;j++){
-            if(chromosome[j].fitness > MAX_FITNESS){
-                 best = j;
-                 MAX_FITNESS = chromosome[j].fitness;
-            }
-            if(chromosome[j].fitness < MIN_FITNESS){
-                worst = j;
-                MIN_FITNESS = chromosome[j].fitness;
-            }
-        }
+	vector<double> gen_avg(NXG+1),gen_max(NXG+1);
 
-    pbest = chromosome[best];
-
-    cout << "INITIAL" << " \t " << pbest.fitness << " \n ";
-
-    for(int i=0;i<NXG;i++){
-        //Selection of mating pool
-        selection();
-        //Crossover with probability 0.5
-        crossover(0.5);
-        //Mutation with probability 0.05
-        mutation(0.1);
-
+	for(int iter = 0;iter < 50; iter++){
+        init(50.00);
+        // NXG is the no of generations.
+        // We try for different values of NXG till inflection is reached.
+        // That NXG will be reached when the average fitness of the population becomes more or less constant.
+        // Initially we take NXG as 1000.
+        Encoding pbest;
+        int best,worst;
         MAX_FITNESS = 0;
         MIN_FITNESS = (double)(INT_MAX);
-        double ans = 0;
-        double sum = 0;
+
+        double sum_init = 0.0;
         for(int j=0;j<POPULATION_SIZE;j++){
-
-            if(chromosome[j].fitness > MAX_FITNESS){
-                best  = j;
-                MAX_FITNESS = chromosome[j].fitness;
-            }
-            if(chromosome[j].fitness < MIN_FITNESS){
-                worst = j;
-                MIN_FITNESS = chromosome[j].fitness;
-            }
-            sum += chromosome[j].fitness;
+                if(chromosome[j].fitness > MAX_FITNESS){
+                     best = j;
+                     MAX_FITNESS = chromosome[j].fitness;
+                }
+                if(chromosome[j].fitness < MIN_FITNESS){
+                    worst = j;
+                    MIN_FITNESS = chromosome[j].fitness;
+                }
+                sum_init+=chromosome[j].fitness;
         }
-        ans = sum/POPULATION_SIZE;
-        //if(pbest.fitness > chromosome[best].fitness){
-            chromosome[worst] = pbest;
-        //}
-        //else{
-            if(pbest.fitness < chromosome[best].fitness)
-                pbest = chromosome[best];
-        //}
+        double avg_init = sum_init/POPULATION_SIZE;
+        pbest = chromosome[best];
 
-        cout << i + 1 << " \t " << ans << " \n ";
-    }
+        //cout << avg_init << "\t" << pbest.fitness << "\n";
+
+        gen_max[0] += pbest.fitness;
+        gen_avg[0] += avg_init;
+
+        for(int i=1;i<=NXG;i++){
+            //Selection of mating pool
+            selection();
+            //Crossover with probability 0.5
+            crossover(0.5);
+            //Mutation with probability 0.05
+            mutation(0.05);
+
+            MAX_FITNESS = 0;
+            MIN_FITNESS = (double)(INT_MAX);
+            double ans = 0;
+            double sum = 0;
+            for(int j=0;j<POPULATION_SIZE;j++){
+
+                if(chromosome[j].fitness > MAX_FITNESS){
+                    best  = j;
+                    MAX_FITNESS = chromosome[j].fitness;
+                }
+                if(chromosome[j].fitness < MIN_FITNESS){
+                    worst = j;
+                    MIN_FITNESS = chromosome[j].fitness;
+                }
+                sum += chromosome[j].fitness;
+            }
+            ans = sum/POPULATION_SIZE;
+            //if(pbest.fitness > chromosome[best].fitness){
+                chromosome[worst] = pbest;
+            //}
+            //else{
+                if(pbest.fitness < chromosome[best].fitness)
+                    pbest = chromosome[best];
+            //}
+            gen_max[i] += pbest.fitness;
+            gen_avg[i] += ans;
+            //cout << ans << "\t" << pbest.fitness << "\n";
+        }
+	}
+	for(int i=0;i<=NXG;i++){
+        gen_max[i] /= 50.0;
+        gen_avg[i] /= 50.0;
+	}
+    writer.addDataInRow(gen_avg.begin(),gen_avg.end());
+    writer2.addDataInRow(gen_max.begin(),gen_max.end());
 }
