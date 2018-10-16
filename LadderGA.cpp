@@ -15,6 +15,7 @@ const double AD_WT = 0.4;
 double DD;
 double MAX_FITNESS;
 double MIN_FITNESS;
+double ndp,wdp;
 
 class gene{
     public:
@@ -32,6 +33,7 @@ class gene{
 };
 
 vector< gene > quesBank(1000);
+map< vector< int > , double > dp;
 
 class Encoding{
     public:
@@ -160,10 +162,17 @@ class Encoding{
         return ans;
     }
     void calculateFitness(){
-        fa = CD_WT * getConceptDifficulty() + AD_WT * getAttemptDifficulty();
-        fb = DD;
-        F = abs(fa - fb);
-        fitness = ((double)1)/F;
+        ndp++;
+        if(dp.find(this->code) == dp.end()){
+            wdp++;
+            fa = CD_WT * getConceptDifficulty() + AD_WT * getAttemptDifficulty();
+            fb = DD;
+            F = abs(fa - fb);
+            fitness = ((double)1)/F;
+            dp[this->code] = fitness;
+        }
+        else
+            fitness = dp[this->code];
     }
 };
 
@@ -201,6 +210,7 @@ void init(double d){
             chromosome[i].code[j] = rand() % 1000;
 
         }
+
         chromosome[i].calculateFitness();
     }
 }
@@ -323,10 +333,15 @@ int main(){
     cin >> NXG;
     CSVWriter writer("Gen_avg_data.csv");
 	CSVWriter writer2("Gen_max_data.csv");
+	CSVWriter writer3("wdp_data.csv");
+	CSVWriter writer4("ndp_data.csv");
 
-	vector<double> gen_avg(NXG+1),gen_max(NXG+1);
+	vector<double> gen_avg(NXG+1,0),gen_max(NXG+1,0);
+	vector<double> wdp_a(NXG+1,0),ndp_a(NXG+1,0);
 
 	for(int iter = 0;iter < 50; iter++){
+        ndp = 0;
+        wdp = 0;
         init(50.00);
         // NXG is the no of generations.
         // We try for different values of NXG till inflection is reached.
@@ -336,7 +351,6 @@ int main(){
         int best,worst;
         MAX_FITNESS = 0;
         MIN_FITNESS = (double)(INT_MAX);
-
         double sum_init = 0.0;
         for(int j=0;j<POPULATION_SIZE;j++){
                 if(chromosome[j].fitness > MAX_FITNESS){
@@ -356,6 +370,8 @@ int main(){
 
         gen_max[0] += pbest.fitness;
         gen_avg[0] += avg_init;
+        wdp_a[0] += wdp;
+        ndp_a[0] += ndp;
 
         for(int i=1;i<=NXG;i++){
             //Selection of mating pool
@@ -391,13 +407,20 @@ int main(){
             //}
             gen_max[i] += pbest.fitness;
             gen_avg[i] += ans;
+            wdp_a[i] += wdp;
+            ndp_a[i] += ndp;
             //cout << ans << "\t" << pbest.fitness << "\n";
         }
 	}
 	for(int i=0;i<=NXG;i++){
         gen_max[i] /= 50.0;
         gen_avg[i] /= 50.0;
+        wdp_a[i] /= 50.0;
+        ndp_a[i] /= 50.0;
 	}
     writer.addDataInRow(gen_avg.begin(),gen_avg.end());
     writer2.addDataInRow(gen_max.begin(),gen_max.end());
+    writer3.addDataInRow(wdp_a.begin(),wdp_a.end());
+    writer4.addDataInRow(ndp_a.begin(),ndp_a.end());
+
 }
