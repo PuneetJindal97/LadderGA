@@ -1,8 +1,7 @@
 #include <bits/stdc++.h>
-#include <fstream>
 
 using namespace std;
-const int POPULATION_SIZE = 5000;
+const int POPULATION_SIZE = 500;
 const double ACCURACY_WT = 1;
 const double WASTEFUL_WT = 1;
 const double USEFUL_WT = 1;
@@ -14,6 +13,9 @@ const double AVGTIME_WT = 1;
 const double CD_WT = 0.6;
 const double AD_WT = 0.4;
 double DD;
+double MAX_FITNESS;
+double MIN_FITNESS;
+double ndp,wdp;
 
 class gene{
     public:
@@ -31,13 +33,17 @@ class gene{
 };
 
 vector< gene > quesBank(1000);
+map< vector< int > , double > dp;
 
 class Encoding{
     public:
     double fitness;
+    double fb;
+    double fa;
+    double F;
     vector< int > code;
     double probability;
-    Encoding() : code(20), fitness(0), probability(0) {}
+    Encoding() : code(20), fitness(0), fa(0), fb(0), F(0), probability(0) {}
 
     double getConceptDifficulty(){
 
@@ -115,6 +121,7 @@ class Encoding{
             ans += quesBank[this->code[i]].userRating;
         }
         ans /= 20;
+        ans = 100.0 - ans;
         ans = USERRATING_WT * ans;
         return ans;
     }
@@ -126,6 +133,7 @@ class Encoding{
             ans += quesBank[this->code[i]].avgScore;
         }
         ans /= 20;
+        ans  = 100.0 - ans;
         ans = AVGSCORE_WT * ans;
         return ans;
     }
@@ -154,12 +162,18 @@ class Encoding{
         return ans;
     }
     void calculateFitness(){
-        double fa = CD_WT * getConceptDifficulty() + AD_WT * getAttemptDifficulty();
-        double fb = DD;
-        double F = abs(fa - fb);
-        this->fitness = ((double)1)/F;
+        ndp++;
+        if(dp.find(this->code) == dp.end()){
+            wdp++;
+            fa = CD_WT * getConceptDifficulty() + AD_WT * getAttemptDifficulty();
+            fb = DD;
+            F = abs(fa - fb);
+            fitness = ((double)1)/F;
+            dp[this->code] = fitness;
+        }
+        else
+            fitness = dp[this->code];
     }
-
 };
 
 
@@ -168,6 +182,7 @@ vector< Encoding > chromosome(POPULATION_SIZE);
 // POPULATION INITIALIZATION
 
 void init(double d){
+    //srand(time(NULL));
     srand(time(NULL));
     freopen("Input.txt", "r", stdin);
     int conceptNumber;
@@ -189,49 +204,22 @@ void init(double d){
         cin >> quesBank[i].userRating;
     }
 
-    /*for(int i=0;i<5;i++){
-        cout << quesBank[i].level;
-        cout << quesBank[i].accuracy;
-        for(auto s : quesBank[i].conceptList){
-            cout << s << " ";
-        }
-        cout << quesBank[i].wasteful;
-        cout << quesBank[i].useful;
-        cout << quesBank[i].overTime;
-        cout << quesBank[i].avgTime;
-        cout << quesBank[i].skipRate;
-        cout << quesBank[i].avgScore;
-        cout << quesBank[i].userRating;
-        cout << "\n";
-    }*/
-
     DD = d;
     for(int i=0;i<POPULATION_SIZE;i++){
         for(int j=0;j<20;j++){
             chromosome[i].code[j] = rand() % 1000;
 
         }
+
         chromosome[i].calculateFitness();
     }
 }
 // SELECTION
 
-int selection(){
-    double totalFitness=0;
-    double totalProbability=0;
-    double probability=0;
-    srand((unsigned)time(NULL));
+int getSelection(){
     double rndNumber = rand() / (double) RAND_MAX;
     double offset = 0.0;
     int pick = 0;
-
-    for(int i=0;i<POPULATION_SIZE;i++){
-        totalFitness += chromosome[i].fitness;
-    }
-
-    for(int i=0;i<POPULATION_SIZE;i++){
-        chromosome[i].probability = chromosome[i].fitness/totalFitness;
-    }
 
     for (int i = 0; i < POPULATION_SIZE; i++) {
         offset += chromosome[i].probability;
@@ -239,72 +227,200 @@ int selection(){
             pick = i;
             break;
         }
-}
+    }
     return pick;
+}
+
+void selection(){
+    double totalFitness=0;
+    double totalProbability=0;
+    double probability=0;
+    for(int i=0;i<POPULATION_SIZE;i++){
+        totalFitness += chromosome[i].fitness;
+    }
+
+    for(int i=0;i<POPULATION_SIZE;i++){
+        chromosome[i].probability = chromosome[i].fitness/totalFitness;
+    }
+    vector< Encoding > tocopy(POPULATION_SIZE);
+    for(int i = 0;i < POPULATION_SIZE;i++){
+        int pick = getSelection();
+        tocopy[i] = chromosome[pick];
+    }
+     for(int i = 0;i < POPULATION_SIZE;i++){
+        chromosome[i] = tocopy[i];
+    }
 }
 // CROSSOVER
 void getCrossover(int a,int b){
-    for(int i=0;i<20;i++){
-        if(i & 1){
-            chromosome[a].code[i] = chromosome[b].code[i];
-        }
-        else
-        {
-            chromosome[b].code[i] = chromosome[a].code[i];
-        }
+    int pt = rand() % 20;
+    for(int i=0;i<pt;i++){
+        swap(chromosome[a].code[i],chromosome[b].code[i]);
     }
     chromosome[a].calculateFitness();
     chromosome[b].calculateFitness();
 }
 
 void crossover(double PC){
-    double CROSSOVER_SIZE = 0;
-    while(CROSSOVER_SIZE <= PC*POPULATION_SIZE){
-        int a = selection();
-        int b = selection();
-        getCrossover(a,b);
-        CROSSOVER_SIZE ++;
+    for(int i = 0;i < POPULATION_SIZE;i += 2){
+        double rndNumber = rand() / (double) RAND_MAX;
+        if(rndNumber <= PC){
+            getCrossover(i,i+1);
+        }
     }
 }
 
 // MUTATION
-void getMutation(int a,int x){
-    chromosome[a].code[x] = rand() % 1000;
+void getMutation(int a,double PM){
+    for(int i=0;i<20;i++){
+        double rndNumber = rand() / (double) RAND_MAX;
+        if(rndNumber <= PM){
+            chromosome[a].code[i] = rand() % 1000;
+        }
+    }
     chromosome[a].calculateFitness();
 }
 
 void mutation(double PM){
-    srand((unsigned)time(NULL));
-    double MUTATION_SIZE = 0;
-    while(MUTATION_SIZE <= PM*POPULATION_SIZE){
-        int a = selection();
-        getMutation(a,rand()%20);
-        MUTATION_SIZE++;
+    for(int i = 0;i < POPULATION_SIZE;i ++){
+        getMutation(i,PM);
     }
+
 }
 
 
-int main(){
-    init(60.00);
-    // NXG is the no of generations.
-    // We try for different values of NXG till inflection is reached.
-    // That NXG will be reached when the average fitness of the population becomes more or less constant.
-    // Initially we take NXG as 1000.
-    int NXG = 1000;
+class CSVWriter{
+	string fileName;
+	string delimiter;
+	int linesCnt;
 
-    for(int i=0;i<NXG;i++){
-        //Crossover with probability 0.5
-        crossover(0.5);
-        //Mutation with probability 0.05
-        mutation(0.05);
-    }
-    //Final solution has highest fitness.
-    double SOL_FIT = 0;
-    Encoding solution;
-    for(int i=0;i<POPULATION_SIZE;i++){
-        if(chromosome[i].fitness > SOL_FIT){
-            solution = chromosome[i];
+	public :
+	CSVWriter(string filename,string delim=",") : fileName(filename), delimiter(delim), linesCnt(0) {}
+
+	template<typename T>
+	void addDataInRow(T first,T last);
+};
+
+template<typename T>
+void CSVWriter::addDataInRow(T first,T last){
+	fstream file;
+	file.open(fileName,ios::out | (linesCnt ? ios::app : ios::trunc));
+
+	for(;first!=last;)
+	{
+		file << *first;
+		if(++first!=last)
+		{
+			file << delimiter;
+		}
+		file << "\n";
+	}
+	//file << "\n";
+	linesCnt++;
+	file.close();
+}
+
+
+
+
+
+
+
+
+
+int main(){
+    int NXG;
+    cin >> NXG;
+    CSVWriter writer("Gen_avg_data.csv");
+	CSVWriter writer2("Gen_max_data.csv");
+	CSVWriter writer3("wdp_data.csv");
+	CSVWriter writer4("ndp_data.csv");
+
+	vector<double> gen_avg(NXG+1,0),gen_max(NXG+1,0);
+	vector<double> wdp_a(NXG+1,0),ndp_a(NXG+1,0);
+
+	for(int iter = 0;iter < 50; iter++){
+        ndp = 0;
+        wdp = 0;
+        init(50.00);
+        // NXG is the no of generations.
+        // We try for different values of NXG till inflection is reached.
+        // That NXG will be reached when the average fitness of the population becomes more or less constant.
+        // Initially we take NXG as 1000.
+        Encoding pbest;
+        int best,worst;
+        MAX_FITNESS = 0;
+        MIN_FITNESS = (double)(INT_MAX);
+        double sum_init = 0.0;
+        for(int j=0;j<POPULATION_SIZE;j++){
+                if(chromosome[j].fitness > MAX_FITNESS){
+                     best = j;
+                     MAX_FITNESS = chromosome[j].fitness;
+                }
+                if(chromosome[j].fitness < MIN_FITNESS){
+                    worst = j;
+                    MIN_FITNESS = chromosome[j].fitness;
+                }
+                sum_init+=chromosome[j].fitness;
         }
-    }
-    cout << solution.fitness;
+        double avg_init = sum_init/POPULATION_SIZE;
+        pbest = chromosome[best];
+
+        //cout << avg_init << "\t" << pbest.fitness << "\n";
+
+        gen_max[0] += pbest.fitness;
+        gen_avg[0] += avg_init;
+        wdp_a[0] += wdp;
+        ndp_a[0] += ndp;
+
+        for(int i=1;i<=NXG;i++){
+            //Selection of mating pool
+            selection();
+            //Crossover with probability 0.5
+            crossover(0.5);
+            //Mutation with probability 0.05
+            mutation(0.05);
+
+            MAX_FITNESS = 0;
+            MIN_FITNESS = (double)(INT_MAX);
+            double ans = 0;
+            double sum = 0;
+            for(int j=0;j<POPULATION_SIZE;j++){
+
+                if(chromosome[j].fitness > MAX_FITNESS){
+                    best  = j;
+                    MAX_FITNESS = chromosome[j].fitness;
+                }
+                if(chromosome[j].fitness < MIN_FITNESS){
+                    worst = j;
+                    MIN_FITNESS = chromosome[j].fitness;
+                }
+                sum += chromosome[j].fitness;
+            }
+            ans = sum/POPULATION_SIZE;
+            //if(pbest.fitness > chromosome[best].fitness){
+                chromosome[worst] = pbest;
+            //}
+            //else{
+                if(pbest.fitness < chromosome[best].fitness)
+                    pbest = chromosome[best];
+            //}
+            gen_max[i] += pbest.fitness;
+            gen_avg[i] += ans;
+            wdp_a[i] += wdp;
+            ndp_a[i] += ndp;
+            //cout << ans << "\t" << pbest.fitness << "\n";
+        }
+	}
+	for(int i=0;i<=NXG;i++){
+        gen_max[i] /= 50.0;
+        gen_avg[i] /= 50.0;
+        wdp_a[i] /= 50.0;
+        ndp_a[i] /= 50.0;
+	}
+    writer.addDataInRow(gen_avg.begin(),gen_avg.end());
+    writer2.addDataInRow(gen_max.begin(),gen_max.end());
+    writer3.addDataInRow(wdp_a.begin(),wdp_a.end());
+    writer4.addDataInRow(ndp_a.begin(),ndp_a.end());
+
 }
